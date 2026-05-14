@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Autopass">
+  <rect width="64" height="64" rx="16" fill="#003b71"/>
+  <path d="M14 46 29 14h7l14 32h-9l-2.7-6.8H26.7L24 46h-10Zm15.2-14.2h6.6L32.5 23l-3.3 8.8Z" fill="#ffc400"/>
+  <path d="M13 52h38" stroke="#009fe3" stroke-width="5" stroke-linecap="round"/>
+</svg>
