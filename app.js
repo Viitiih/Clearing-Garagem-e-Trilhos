@@ -138,52 +138,89 @@ function cloneRows(rows) {
   return JSON.parse(JSON.stringify(rows || []));
 }
 
-function buildPendingRows(scope) {
-  return getAllTargets(scope).map((target) => ({
-    alvo: target.nome,
-    schemaBase: target.schemaBase,
-    tpId: target.tpIds.join(", "),
-    origem: null,
-    autopass: null,
-    originOnly: null,
-    autopassOnly: null,
-    status: "Aguardando API"
-  }));
+function formatDateTimeApi(date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-async function executeQuery(scope, period) {
-  // Ponto de integração futura:
-  // trocar este bloco por um fetch para uma API interna, por exemplo:
-  // const response = await fetch('/api/comparacao', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ scope, period })
-  // });
-  // return response.json();
-  //
-  // Nesta versão estática, não há conexão Oracle. Para não mostrar informação errada,
-  // Garagens usa a amostra real enviada e Trilhos lista os alvos reais como aguardando API.
-  const fixture = window.RESULT_FIXTURES?.[scope];
-  await new Promise((resolve) => setTimeout(resolve, 250));
+function getApiBaseUrl() {
+  return String(window.API_BASE_URL || "").replace(/\/$/, "");
+}
 
-  if (!fixture || !fixture.summary?.length) {
-    return {
-      summary: buildPendingRows(scope),
-      details: [],
-      fixture: {
-        sourceLabel: "Alvos reais carregados da automação original",
-        periodLabel: null,
-        generatedAt: null,
-        modeLabel: "Estrutura carregada — valores reais dependem da API Oracle"
-      }
-    };
+function buildApiPayload(scope, period) {
+  return {
+    scope,
+    period: {
+      mode: period.mode,
+      start: formatDateTimeApi(period.start),
+      end: formatDateTimeApi(period.end)
+    }
+  };
+}
+
+function normalizeApiResult(result, scope, period) {
+  if (!result || !Array.isArray(result.summary) || !Array.isArray(result.details)) {
+    throw new Error("A API respondeu em um formato inválido. Ela precisa retornar summary[] e details[].");
   }
 
   return {
-    summary: cloneRows(fixture.summary),
-    details: cloneRows(fixture.details),
-    fixture
+    summary: cloneRows(result.summary),
+    details: cloneRows(result.details),
+    fixture: {
+      sourceLabel: result.sourceLabel || "API Oracle interna",
+      periodLabel: result.periodLabel || `${formatDateTimeBR(period.start)} até ${formatDateTimeBR(period.end)}`,
+      generatedAt: result.generatedAt || formatDateTimeBR(new Date()),
+      modeLabel: result.modeLabel || `Valores reais Autopass x ${getScopeLabel(scope)}`
+    }
   };
+}
+
+async function fetchRealResult(scope, period) {
+  const apiBaseUrl = getApiBaseUrl();
+  const endpoint = `${apiBaseUrl}/api/comparacao`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(buildApiPayload(scope, period))
+  });
+
+  const text = await response.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error(`A API respondeu algo que não é JSON. Retorno: ${text.slice(0, 120)}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.detail || payload?.message || `Erro HTTP ${response.status} ao consultar a API.`);
+  }
+
+  return normalizeApiResult(payload, scope, period);
+}
+
+async function executeQuery(scope, period) {
+  // Agora o front envia SEMPRE o período escolhido pelo usuário para a API.
+  // Isso corrige o problema de usar uma amostra fixa para qualquer data.
+  // Para valores reais, a API precisa estar em uma VM/servidor com acesso ao Oracle.
+  try {
+    return await fetchRealResult(scope, period);
+  } catch (error) {
+    if (window.USE_STATIC_SAMPLE === true) {
+      const fixture = window.RESULT_FIXTURES?.[scope];
+      if (fixture?.summary?.length) {
+        return {
+          summary: cloneRows(fixture.summary),
+          details: cloneRows(fixture.details),
+          fixture
+        };
+      }
+    }
+
+    throw new Error(
+      `${error.message}\n\n` +
+      "Para puxar valores reais de todas as datas, publique o backend/autopass_api.py em um servidor com acesso aos bancos Oracle e configure window.API_BASE_URL em data/alvos.js."
+    );
+  }
 }
 
 function escapeHtml(value) {

@@ -25,8 +25,8 @@
       <div class="environment-card">
         <span class="status-dot"></span>
         <div>
-          <strong>Homologação visual</strong>
-          <p>Projeto estático pronto para GitHub/Netlify. Garagens usa o Excel real enviado. Trilhos carrega os alvos reais e fica aguardando a API Oracle para trazer valores reais.</p>
+          <strong>Ambiente operacional</strong>
+          <p>Front pronto para GitHub/Netlify. Para valores reais de todas as datas, conecte este site à API interna com acesso ao Oracle.</p>
         </div>
       </div>
 
@@ -124,12 +124,12 @@
         <div>
           <span class="eyebrow">Autopass • Operação</span>
           <h2>Validação das automações de binários</h2>
-          <p>Interface com visual de portal operacional para o usuário escolher o período, executar Garagens ou Trilhos e consultar os resultados sem mexer nos scripts. A versão estática não inventa dados: Garagens usa o Excel real enviado e Trilhos exibe os alvos reais aguardando a API Oracle.</p>
+          <p>Interface de portal operacional para o usuário escolher o período, executar Garagens ou Trilhos e consultar os resultados sem mexer nos scripts. O front envia o período selecionado para a API interna, que executa as consultas Oracle e retorna os valores reais.</p>
         </div>
         <div class="hero-status">
           <span>Ambiente atual</span>
-          <strong>Homologação estática</strong>
-          <small>Sem valores inventados: Garagens real; Trilhos aguardando backend/API</small>
+          <strong>Front + API Oracle</strong>
+          <small>Valores reais somente via API interna</small>
         </div>
       </section>
 
@@ -231,11 +231,11 @@
       <section class="notes-grid">
         <article>
           <strong>Excel no padrão operacional</strong>
-          <p>A exportação gera as abas <b>RESUMO</b> e <b>DIVERGÊNCIAS</b>, com TP_ID, cabeçalho azul, linhas verdes para OK, vermelhas para divergência e amarelas para alvos aguardando API.</p>
+          <p>A exportação gera as abas <b>RESUMO</b> e <b>DIVERGÊNCIAS</b>, com TP_ID, cabeçalho azul, linhas verdes para OK e vermelhas/amarelas para divergências.</p>
         </article>
         <article>
           <strong>Próximo passo para produção</strong>
-          <p>Substituir o arquivo <b>data/alvos.js</b> por uma chamada para API interna. A tela já está preparada para receber o JSON com resumo e divergências das queries Oracle.</p>
+          <p>Configurar <b>window.API_BASE_URL</b> em <b>data/alvos.js</b> apontando para a API interna. A API executa as queries Oracle e devolve o JSON com resumo e divergências.</p>
         </article>
       </section>
     </main>
