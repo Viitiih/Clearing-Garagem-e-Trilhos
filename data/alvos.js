@@ -1,9 +1,18 @@
-// Cadastro de alvos e amostras reais do protótipo visual.
-// IMPORTANTE:
-// - Garagens usa os valores e binários reais do Excel enviado pelo usuário.
-// - Trilhos usa os alvos reais extraídos da automação original. Como não foi enviado
-//   um Excel real de Trilhos, os valores ficam como "Aguardando API" em vez de serem simulados.
-// - Em produção, estes dados devem vir de uma API interna/autenticada conectada ao Oracle.
+// Cadastro de alvos do painel Autopass.
+//
+// IMPORTANTE PARA VALORES REAIS:
+// - O navegador/GitHub Pages/Netlify estático NÃO consulta Oracle diretamente.
+// - Para puxar valores reais de todas as datas, o app chama uma API interna.
+// - Suba o backend/autopass_api.py em uma VM/servidor com acesso aos bancos Oracle.
+// - Depois informe abaixo a URL da API. Exemplo:
+//   window.API_BASE_URL = "http://10.0.0.10:8000";
+// - Se a API estiver no mesmo domínio do front, deixe vazio.
+
+window.API_BASE_URL = "";
+
+// Use somente para homologação visual. Em produção, deixe false para não usar amostra fixa.
+window.USE_STATIC_SAMPLE = false;
+
 
 window.ALVO_CONFIG = {
   garagens: [
@@ -90,10 +99,10 @@ window.RESULT_FIXTURES = {
     ]
   },
   trilhos: {
-    sourceLabel: "Alvos reais extraídos da automação Autopass x Trilhos",
+    sourceLabel: "Valores reais via API Oracle",
     periodLabel: null,
     generatedAt: null,
-    modeLabel: "Estrutura carregada — valores reais dependem da API Oracle",
+    modeLabel: "API Oracle",
     summary: trilhosPendente,
     details: []
   }
