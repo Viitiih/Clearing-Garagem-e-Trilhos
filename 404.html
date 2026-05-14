@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Painel visual para comparação de binários Autopass x Garagens e Autopass x Trilhos." />
+  <title>Autopass | Painel de Binários</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+  <script src="./data/alvos.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Configurações da consulta">
+      <div class="brand">
+        <div class="brand-mark">A</div>
+        <div>
+          <h1>AUTOPASS</h1>
+          <p>Painel operacional de binários</p>
+        </div>
+      </div>
+
+      <div class="environment-card">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Homologação visual</strong>
+          <p>Projeto estático pronto para GitHub/Netlify. Garagens usa o Excel real enviado. Trilhos carrega os alvos reais e fica aguardando a API Oracle para trazer valores reais.</p>
+        </div>
+      </div>
+
+      <form id="executionForm" class="control-card" autocomplete="off">
+        <div class="control-step">
+          <span>01</span>
+          <div>
+            <h2>Período</h2>
+            <p>Use o ciclo operacional padrão ou informe início e fim manualmente.</p>
+          </div>
+        </div>
+
+        <div class="choice-grid two-columns" role="radiogroup" aria-label="Tipo de período">
+          <label class="choice-card">
+            <input type="radio" name="periodMode" value="auto" checked />
+            <span>
+              <strong>Ciclo 03:00</strong>
+              <small>03:00 até 02:59:59</small>
+            </span>
+          </label>
+          <label class="choice-card">
+            <input type="radio" name="periodMode" value="manual" />
+            <span>
+              <strong>Manual</strong>
+              <small>Início e fim livres</small>
+            </span>
+          </label>
+        </div>
+
+        <div id="autoPeriodBox" class="input-box">
+          <label for="cycleDate">Data do ciclo</label>
+          <input id="cycleDate" type="date" />
+          <p id="cyclePreview"></p>
+        </div>
+
+        <div id="manualPeriodBox" class="manual-grid hidden">
+          <label>
+            <span>Início</span>
+            <input id="startDateTime" type="datetime-local" />
+          </label>
+          <label>
+            <span>Fim</span>
+            <input id="endDateTime" type="datetime-local" />
+          </label>
+        </div>
+
+        <div class="control-step has-margin">
+          <span>02</span>
+          <div>
+            <h2>Consulta</h2>
+            <p>Escolha apenas uma automação por execução.</p>
+          </div>
+        </div>
+
+        <div class="choice-grid" role="radiogroup" aria-label="Escopo da consulta">
+          <label class="scope-card">
+            <input type="radio" name="scope" value="garagens" checked />
+            <span class="scope-icon">▣</span>
+            <span>
+              <strong>Autopass x Garagens</strong>
+              <small>Executa todos os alvos de garagens</small>
+            </span>
+          </label>
+          <label class="scope-card">
+            <input type="radio" name="scope" value="trilhos" />
+            <span class="scope-icon">▤</span>
+            <span>
+              <strong>Autopass x Trilhos</strong>
+              <small>Executa todos os alvos de trilhos</small>
+            </span>
+          </label>
+        </div>
+
+        <div id="targetCounter" class="target-counter"></div>
+
+        <div class="button-row">
+          <button id="runButton" class="btn btn-primary" type="submit">Executar automação</button>
+          <button id="clearButton" class="btn btn-ghost" type="button">Limpar</button>
+        </div>
+      </form>
+
+      <div class="flow-card">
+        <strong>Fluxo de uso</strong>
+        <ol>
+          <li>Escolha o período.</li>
+          <li>Escolha Garagens ou Trilhos.</li>
+          <li>Execute todos os alvos.</li>
+          <li>Baixe o Excel no modelo operacional.</li>
+        </ol>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="hero-card">
+        <div>
+          <span class="eyebrow">Autopass • Operação</span>
+          <h2>Validação das automações de binários</h2>
+          <p>Interface com visual de portal operacional para o usuário escolher o período, executar Garagens ou Trilhos e consultar os resultados sem mexer nos scripts. A versão estática não inventa dados: Garagens usa o Excel real enviado e Trilhos exibe os alvos reais aguardando a API Oracle.</p>
+        </div>
+        <div class="hero-status">
+          <span>Ambiente atual</span>
+          <strong>Homologação estática</strong>
+          <small>Sem valores inventados: Garagens real; Trilhos aguardando backend/API</small>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Resumo da execução">
+        <article class="metric-card">
+          <span>Alvos carregados</span>
+          <strong id="metricTargets">0</strong>
+        </article>
+        <article class="metric-card success">
+          <span>Sem divergência</span>
+          <strong id="metricOk">0</strong>
+        </article>
+        <article class="metric-card danger">
+          <span>Com divergência</span>
+          <strong id="metricIssues">0</strong>
+        </article>
+        <article class="metric-card warning">
+          <span id="metricOriginOnlyLabel">Só na origem</span>
+          <strong id="metricOriginOnly">0</strong>
+        </article>
+        <article class="metric-card info">
+          <span>Só no Autopass</span>
+          <strong id="metricAutopassOnly">0</strong>
+        </article>
+      </section>
+
+      <section class="execution-strip">
+        <div>
+          <span>Período executado</span>
+          <strong id="executedPeriod">Nenhuma execução realizada</strong>
+        </div>
+        <div>
+          <span>Consulta</span>
+          <strong id="executedScope">—</strong>
+        </div>
+        <div>
+          <span>Gerado em</span>
+          <strong id="executedAt">—</strong>
+        </div>
+      </section>
+
+      <section class="results-card">
+        <div class="results-header">
+          <div>
+            <span class="eyebrow">Resultados</span>
+            <h3>Resumo por alvo</h3>
+            <p>Visualize rapidamente quais alvos bateram e quais possuem diferença entre origem e Autopass.</p>
+          </div>
+          <div class="toolbar">
+            <input id="searchInput" type="search" placeholder="Filtrar por alvo, schema, arquivo ou status..." />
+            <button id="exportXlsxButton" class="btn btn-success" type="button">Baixar Excel</button>
+            <button id="exportCsvButton" class="btn btn-light" type="button">CSV</button>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Alternar visualização">
+          <button class="tab active" type="button" data-tab="summary">Resumo</button>
+          <button class="tab" type="button" data-tab="details">Divergências</button>
+        </div>
+
+        <div id="summaryView" class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th id="targetHeader">Garagem</th>
+                <th id="schemaHeader">Schema</th>
+                <th>TP_ID</th>
+                <th id="originQtyHeader">Qtd Garagem</th>
+                <th>Qtd Autopass</th>
+                <th id="originOnlyHeader">Só na Garagem</th>
+                <th>Só no Autopass</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody">
+              <tr><td colspan="8" class="empty">Execute uma automação para visualizar os resultados.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="detailsView" class="table-wrap hidden">
+          <table>
+            <thead>
+              <tr>
+                <th id="detailsTargetHeader">Garagem</th>
+                <th id="detailsSchemaHeader">Schema</th>
+                <th>TP_ID</th>
+                <th>Arquivo/Binário</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody id="detailsTableBody">
+              <tr><td colspan="5" class="empty">Nenhuma divergência carregada.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="notes-grid">
+        <article>
+          <strong>Excel no padrão operacional</strong>
+          <p>A exportação gera as abas <b>RESUMO</b> e <b>DIVERGÊNCIAS</b>, com TP_ID, cabeçalho azul, linhas verdes para OK, vermelhas para divergência e amarelas para alvos aguardando API.</p>
+        </article>
+        <article>
+          <strong>Próximo passo para produção</strong>
+          <p>Substituir o arquivo <b>data/alvos.js</b> por uma chamada para API interna. A tela já está preparada para receber o JSON com resumo e divergências das queries Oracle.</p>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
